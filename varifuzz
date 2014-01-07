@@ -1,0 +1,34 @@
+#!/bin/sh
+
+SEED=$$
+
+if [ $# -ne 5 ]; then
+	echo "Usage: $(basename "$0") inputfile outputdir/ ERRPCT_MIN ERRPCT_INCREMENT ERRPCT_MAX" >&2
+	echo "  where 0.0 <= ERRPCT_MIN < ERRPCT_MAX <= 100.0" >&2
+	echo "    and 0.0 < ERRPCT_INCREMENT < 100.0" >&2
+	exit 1
+fi
+
+INPUTFILE="$1"; shift
+OUTDIR="$1"; shift
+ERRMIN="$1"; shift
+ERRINCR="$1"; shift
+ERRMAX="$1"; shift
+
+mkdir "$OUTDIR" || {
+	echo "Error creating output directory $OUTDIR" >&2
+	exit 1
+}
+
+echo "Input file: $INPUTFILE"
+INPUTFILEBASE=$(basename "$INPUTFILE")
+
+for ERRPCT in $(seq "$ERRMIN" "$ERRINCR" "$ERRMAX"); do
+	RATE=$(perl -e "print $ERRPCT / 100.0")
+	/bin/echo -n "Fuzzing with error rate ${ERRPCT}%... "
+	OUTF="$OUTDIR"/"${ERRPCT}%_${INPUTFILEBASE}"
+	< "$INPUTFILE" zzuf -s $SEED -r "$RATE" > "$OUTF"
+	echo "$OUTF"
+done
+
+echo "Done."
